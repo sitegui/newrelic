@@ -33,7 +33,7 @@ use std::{env, thread, time::Duration};
 use newrelic::{App, NewRelicConfig};
 
 let license_key =
-    env::var("NEW_RELIC_LICENSE_KEY").unwrap_or_else(|_| "example-license-key".to_string());
+    env::var("NEW_RELIC_LICENSE_KEY").expect("NEW_RELIC_LICENSE_KEY is required");
 let app = App::new("my app", &license_key).expect("Could not create app");
 
 let work = || {
