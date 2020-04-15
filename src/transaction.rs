@@ -346,6 +346,22 @@ impl Transaction {
         Ok(())
     }
 
+    /// Record an error in this transaction.
+    ///
+    /// - `priority` is an arbitrary integer indicating the error priority.
+    /// - `message` is the error message
+    /// - `class` is the error class or type.
+    /// - `stacktrace` are the lines of the error stacktrace
+    pub fn notice_error_with_stacktrace(&self, priority: i32, message: &str, class: &str, stacktrace: &[&str]) -> Result<()> {
+        let message = CString::new(message)?;
+        let class = CString::new(class)?;
+        let stacktrace = CString::new(json::stringify(stacktrace))?;
+        unsafe {
+            ffi::newrelic_notice_error_with_stacktrace(self.inner, priority, message.as_ptr(), class.as_ptr(), stacktrace.as_ptr());
+        }
+        Ok(())
+    }
+
     /// Ignore this transaction.
     ///
     /// Data for this transaction will not be sent to New Relic.
