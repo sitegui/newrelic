@@ -336,26 +336,41 @@ impl Transaction {
     /// Record an error in this transaction.
     ///
     /// `priority` is an arbitrary integer indicating the error priority.
-    /// `message` is the error message; `class` is the error class or type.
-    pub fn notice_error(&self, priority: i32, message: &str, class: &str) -> Result<()> {
-        let message = CString::new(message)?;
-        let class = CString::new(class)?;
-        unsafe {
-            ffi::newrelic_notice_error(self.inner, priority, message.as_ptr(), class.as_ptr());
-        }
-        Ok(())
-    }
+    /// `error` is the error instance from the crate `failure`
+    pub fn notice_error(&self, priority: i32, error: failure::Error) -> Result<()> {
+        // Extract a line from the stacktrace that probably represents the first frame out of the
+        // `failure` crate's code. We use a hacky heuristics that should work.
 
-    /// Record an error in this transaction.
-    ///
-    /// - `priority` is an arbitrary integer indicating the error priority.
-    /// - `message` is the error message
-    /// - `class` is the error class or type.
-    /// - `stacktrace` are the lines of the error stacktrace
-    pub fn notice_error_with_stacktrace(&self, priority: i32, message: &str, class: &str, stacktrace: &[&str]) -> Result<()> {
-        let message = CString::new(message)?;
-        let class = CString::new(class)?;
-        let stacktrace = CString::new(json::stringify(stacktrace))?;
+        // The stacktrace originally is something like this:
+        //    0: failure::backtrace::internal::InternalBacktrace::new
+        //              at /home/sitegui/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.7/src/backtrace/internal.rs:46
+        //    1: failure::backtrace::Backtrace::new
+        //              at /home/sitegui/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.7/src/backtrace/mod.rs:121
+        //    2: <failure::error::error_impl::ErrorImpl as core::convert::From<F>>::from
+        //              at /home/sitegui/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.7/src/error/error_impl.rs:19
+        //    3: <failure::error::Error as core::convert::From<F>>::from
+        //              at /home/sitegui/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.7/src/error/mod.rs:36
+        //    4: failure::error_message::err_msg
+        //              at /home/sitegui/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.7/src/error_message.rs:12
+        //    5: rust_poc::data_structure::id_map::IdMap<ID,T>::retain
+        //              at rust/src/data_structure/id_map.rs:194
+        //
+        // And then we want to extract just the line "   5: rust_poc::data_structure::id_map::IdMap<ID,T>::retain" and then
+        // extract just the part "rust_poc::data_structure::id_map::IdMap<ID,T>::retain"
+
+        let mut class = None;
+        let stacktrace = error.backtrace().to_string();
+        for line in stacktrace.lines().step_by(2) {
+            let is_failure_frame = line.contains(" failure::") || line.contains(" <failure::");
+            if !is_failure_frame {
+                class = line.find(": ").map(|pos| &line[pos+2..]);
+                break;
+            }
+        }
+
+        let message = CString::new(error.to_string())?;
+        let class = CString::new(class.unwrap_or("unknown"))?;
+        let stacktrace = CString::new(stacktrace)?;
         unsafe {
             ffi::newrelic_notice_error_with_stacktrace(self.inner, priority, message.as_ptr(), class.as_ptr(), stacktrace.as_ptr());
         }

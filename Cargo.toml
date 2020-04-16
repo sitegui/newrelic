@@ -17,11 +17,12 @@ repository = "https://github.com/sd2k/newrelic"
 license = "MIT/Apache-2.0"
 
 [dependencies]
+failure = "0.1.7"
+json = "0.12.4"
+libc = { version="0.2", optional = true }
 log = ">0.4.0"
 newrelic-sys = { git = "https://github.com/sitegui/newrelic-sys", branch = "newrelic_notice_error_with_stacktrace" }
-libc = { version="0.2", optional = true }
 pin-project = { version="0.4", optional = true }
-json = "0.12.4"
 
 [dev-dependencies]
 tokio = {version="0.2", features=["full"]}
