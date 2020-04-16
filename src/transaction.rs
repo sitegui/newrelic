@@ -337,7 +337,7 @@ impl Transaction {
     ///
     /// `priority` is an arbitrary integer indicating the error priority.
     /// `error` is the error instance from the crate `failure`
-    pub fn notice_error(&self, priority: i32, error: failure::Error) -> Result<()> {
+    pub fn notice_error(&self, priority: i32, error: &failure::Error) -> Result<()> {
         // Extract a line from the stacktrace that probably represents the first frame out of the
         // `failure` crate's code. We use a hacky heuristics that should work.
 
@@ -367,6 +367,10 @@ impl Transaction {
                 break;
             }
         }
+
+        // Convert stacktrace to expected JSON format
+        let stacktrace_lines: Vec<_> = stacktrace.lines().collect();
+        let stacktrace = json::stringify(stacktrace_lines);
 
         let message = CString::new(error.to_string())?;
         let class = CString::new(class.unwrap_or("unknown"))?;
