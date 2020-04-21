@@ -363,7 +363,7 @@ impl Transaction {
         for line in stacktrace.lines().step_by(2) {
             let is_failure_frame = line.contains(" failure::") || line.contains(" <failure::");
             if !is_failure_frame {
-                class = line.find(": ").map(|pos| &line[pos+2..]);
+                class = Some(line.find(": ").map(|pos| &line[pos+2..]).unwrap_or(line).trim());
                 break;
             }
         }
