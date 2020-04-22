@@ -11,6 +11,7 @@ use crate::{
 };
 
 /// A type of transaction monitored by New Relic.
+#[derive(Debug)]
 pub enum TransactionType {
     /// A web transaction.
     Web,
@@ -69,13 +70,14 @@ impl<'a> From<&'a String> for Attribute<'a> {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum State {
     Running,
     Ended,
 }
 
 /// A transaction monitored by New Relic.
+#[derive(Debug)]
 pub struct Transaction {
     pub(crate) inner: *mut ffi::newrelic_txn_t,
     _type: TransactionType,
